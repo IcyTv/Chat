@@ -1,13 +1,13 @@
 import Tkinter as tk     # python 2
+from ScrolledText import ScrolledText
+import ttk
+import Queue
 from passwd import *
 from time import sleep
 from threading import Thread
 import logging as log
 import sqlite3 as sql
-import ttk
 import os, sys
-import Queue
-from ScrolledText import ScrolledText
 from copy import copy
 
 class Std_redirector():
@@ -77,9 +77,10 @@ class StartPage(tk.Frame):
         self.controller.geometry('150x75')
 
     def submit(self, *args):
+        global usr
         try:
-            global usr
-            usr = User(self.svn.get(), self.svp.get())
+            nm = self.svn.get(); pw = self.svp.get()
+            usr = User(nm, pw)
             self.controller.show_frame('Chat')
         except PasswordError as e:
             try:
@@ -89,9 +90,7 @@ class StartPage(tk.Frame):
                 self.error.pack(side='bottom', fill='both', expand=True)
             if e.message == 'Created User':
                 self.error.after(2000,lambda: self.controller.show_frame('Chat'))
-                usr = User(self.svn.get(),self.svp.get())
-            else:
-                print 'asdf'
+                usr = User(nm, pw)
 
 
 class Chat(tk.Frame):
@@ -122,6 +121,7 @@ class Chat(tk.Frame):
     def sender(self, *args):
         tmp = self.msgsv.get()
         if tmp:
+            tmp.decode("utf-8", "ignore")
             cursor.execute("""
             INSERT INTO chat (msg_id, name, message)
             VALUES (NULL, "{}", "{}");
@@ -148,7 +148,7 @@ class Chat(tk.Frame):
                         else:
                             res += n
                 self.text.delete(1.0,tk.END)
-                print res
+                sys.stdout.write(res)
                 res = ''
             sleep(0.5)
 

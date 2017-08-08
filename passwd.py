@@ -1,6 +1,7 @@
 import hashlib, binascii, os
 import random as rnd
 import sqlite3 as sql
+import getpass
 
 class PasswordError(Exception):
     def __init__(self, message):
@@ -12,7 +13,8 @@ class User(object):
         global bol
         self.name = name
         self.connect()
-        self.cursor.execute("SELECT * FROM users WHERE EXISTS(SELECT * FROM users WHERE name='{}');".format(self.name))
+        self.check()
+        self.cursor.execute("""SELECT * FROM users WHERE name="{}";""".format(self.name))
         res = self.cursor.fetchone()
         if res:
             self.passwd = _Pw(passwd,res[3].encode('utf-8'))
@@ -21,9 +23,9 @@ class User(object):
             del res
             self.passwd = _Pw(passwd)
             command = """
-            INSERT INTO users (user_id, name, password, salt)
-            VALUES (NULL, "{}", "{}", "{}");
-            """.format(self.name, str(self.passwd.spw), str(self.passwd.salt))
+            INSERT INTO users (user_id, name, password, salt, os_user)
+            VALUES (NULL, "{}", "{}", "{}","{}");
+            """.format(self.name, str(self.passwd.spw), str(self.passwd.salt),getpass.getuser())
             self.cursor.execute(command)
             self.connection.commit()
             self.connection.close()
@@ -40,8 +42,15 @@ class User(object):
         self.connection = sql.connect('assets/chat.db')
         self.cursor = self.connection.cursor()
 
+    def check(self):
+        self.cursor.execute("""SELECT name FROM users WHERE os_user="{}";""".format(getpass.getuser()))
+        res = self.cursor.fetchone()
+        if res and self.name != res:
+            raise PasswordError('Only one user allowed!')
+
+
 class _Pw(User):
-    def __init__(self,pw,salt='%X' % rnd.SystemRandom().randint(1000000000000,20000000000000)):
+    def __init__(self,pw,salt=os.urandom()):
         self.salt = salt
         tmp = hashlib.pbkdf2_hmac('sha256', bytes(pw), bytes(self.salt), 100000)
         self.spw = binascii.hexlify(tmp)
@@ -80,7 +89,8 @@ def sqlConnection():
     user_id INTEGER PRIMARY KEY,
     name VARCHAR(20),
     password VARCHAR(100),
-    salt VARCHAR(20));"""
+    salt VARCHAR(20),
+    os_user VARCHAR(20));"""
 
     try:
         cursor.execute(command)
