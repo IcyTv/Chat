@@ -2,6 +2,7 @@ import hashlib, binascii, os
 import random as rnd
 import sqlite3 as sql
 import getpass
+from base64 import b64encode
 
 class PasswordError(Exception):
     def __init__(self, message):
@@ -50,7 +51,7 @@ class User(object):
 
 
 class _Pw(User):
-    def __init__(self,pw,salt=os.urandom()):
+    def __init__(self,pw,salt=b64encode(os.urandom(64)).decode('utf-8')):
         self.salt = salt
         tmp = hashlib.pbkdf2_hmac('sha256', bytes(pw), bytes(self.salt), 100000)
         self.spw = binascii.hexlify(tmp)
