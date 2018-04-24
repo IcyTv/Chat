@@ -46,7 +46,7 @@ class User(object):
     def check(self):
         self.cursor.execute("""SELECT name FROM users WHERE os_user="{}";""".format(getpass.getuser()))
         res = self.cursor.fetchone()
-        if res and self.name != res:
+        if res and self.name != res[0]:
             raise PasswordError('Only one user allowed!')
 
 
