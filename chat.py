@@ -46,6 +46,7 @@ class App(tk.Tk):
         self.iconbitmap(default='assets/icon.ico')
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
+        self.protocol("WM_DELETE_WINDOW", self.cancel)
         connect()
 
         self.frames = {}
@@ -58,12 +59,61 @@ class App(tk.Tk):
         self.show_frame("StartPage")
 
     def show_frame(self, page_name):
-        frame = self.frames[page_name]
-        frame.tkraise()
+        self.currentFrame = self.frames[page_name]
+        self.currentFrame.tkraise()
         try:
-            frame.chSize()
+            self.currentFrame.chSize()
         except:
             pass
+
+    def popup(self, message):
+        p = PopUpYN(self, message)
+        self.wait_window(p.top)
+        log.debug("Done with popup")
+        return p.returns
+
+    def cancel(self, event=None):
+        log.info("User closed window")
+        try:
+            self.currentFrame.end()
+        except Exception as e:
+            print e
+        self.destroy()
+
+class PopUpYN:
+    def __init__(self, parent, message):
+        top = self.top = tk.Toplevel(parent)
+        self.parent = parent
+        top.geometry("170x70")
+        top.protocol("WM_DELETE_WINDOW", self.cancel)
+        container = tk.Frame(top, bg="red")
+        container.pack(side="top", fill="both", expand=True)
+
+        tk.Label(container, text=message, fg="darkred").pack(side="top", fill="both", expand=True)
+        for i in xrange(3):
+            container.grid_rowconfigure(i, weight=1)
+            container.grid_columnconfigure(i, weight=1)
+
+        yes = tk.Button(container, text="Yes", command=self.yes)
+        yes.pack(side="left", fill="both", expand=True)
+        no = tk.Button(container, text="No", command=self.no)
+        no.pack(side="right", fill="both", expand=True)
+
+    def yes(self):
+        self.returns = True
+        log.debug("User pressed Yes")
+        self.top.destroy()
+
+    def no(self):
+        self.returns = False
+        log.debug("User pressed No")
+        self.top.destroy()
+
+    def cancel(self, event=None):
+        self.returns = false
+        log.debug("User canceled")
+        self.parent.focus_set()
+        self.top.destroy()
 
 
 class StartPage(tk.Frame):
@@ -76,7 +126,7 @@ class StartPage(tk.Frame):
         self.passwd = tk.Entry(self, textvariable=self.svp, show='*')
         self.passwd.pack(fill="both", expand=True)
         self.passwd.bind('<Return>', self.submit)
-        self.deleteAcc = tk.Label(self, text="Delete account", fg="red", font=("Courier", 8), cursor="hand2")
+        self.deleteAcc = tk.Label(self, text="Forgot password", fg="darkblue", font=("Courier", 8), cursor="hand2")
         self.deleteAcc.pack()
         self.deleteAcc.bind("<Button-1>", self.deleteCallback)
         self.submit = tk.Button(self, text='Submit', command=self.submit)
@@ -86,8 +136,14 @@ class StartPage(tk.Frame):
         self.controller.geometry('170x90')
 
     def deleteCallback(self, event):
-        log.info("pressed")
-        #TODO Deletion! Only os user can delete
+        log.debug("pressed")
+        #TODO Deletion of account
+        if self.controller.popup("This will delete your account!\nAre you sure?"):
+            log.info("Deleting account")
+            User.delete()
+        else:
+            log.info("Not deleting account")
+
 
     def submit(self, *args):
         global usr
@@ -133,18 +189,25 @@ class Chat(tk.Frame):
 
     def chSize(self):
         self.controller.geometry('600x400')
+        self.send("[System]", usr.name + " logged on")
 
     def sender(self, *args):
         tmp = self.msgsv.get()
         if tmp:
-            tmp.decode("utf-8", "ignore")
-            cursor.execute("""
-            INSERT INTO chat (msg_id, name, message)
-            VALUES (NULL, "{}", "{}");
-            """.format(usr.name, tmp))
+            self.send(usr.name, tmp)
         self.msgEntry.delete(0,'end')
         del tmp
+
+    def send(self, user, message):
+        message.decode("utf-8", "ignore")
+        cursor.execute("""
+            INSERT INTO chat (msg_id, name, message)
+            VALUES (NULL, "{}", "{}");
+            """.format(user, message))
         connection.commit()
+
+    def end(self):
+        self.send("[System]", usr.name + " logged out")
 
     def reader(self):
         res = ''
@@ -163,7 +226,10 @@ class Chat(tk.Frame):
                             res += '\n' + n + ': '
                         else:
                             res += n
-                self.text.delete(1.0,tk.END)
+                try:
+                    self.text.delete(1.0,tk.END)
+                except:
+                    pass
                 sys.stdout.write(res)
                 res = ''
             sleep(0.5)

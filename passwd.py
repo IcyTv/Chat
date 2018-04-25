@@ -3,6 +3,9 @@ import random as rnd
 import sqlite3 as sql
 import getpass
 from base64 import b64encode
+import logging as log
+
+log.basicConfig(level=log.DEBUG, format='[%(levelname)s] %(message)s')
 
 class PasswordError(Exception):
     def __init__(self, message):
@@ -48,6 +51,16 @@ class User(object):
         res = self.cursor.fetchone()
         if res and self.name != res[0]:
             raise PasswordError('Only one user allowed!')
+
+    @staticmethod
+    def delete():
+        connection = sql.connect('assets/chat.db')
+        cursor = connection.cursor()
+        cursor.execute("""DELETE FROM users WHERE os_user="{}";""".format(getpass.getuser()))
+        log.debug(cursor.fetchall())
+        connection.commit()
+
+
 
 
 class _Pw(User):
