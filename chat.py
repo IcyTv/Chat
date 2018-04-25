@@ -60,6 +60,10 @@ class App(tk.Tk):
     def show_frame(self, page_name):
         frame = self.frames[page_name]
         frame.tkraise()
+        try:
+            frame.chSize()
+        except:
+            pass
 
 
 class StartPage(tk.Frame):
@@ -72,9 +76,18 @@ class StartPage(tk.Frame):
         self.passwd = tk.Entry(self, textvariable=self.svp, show='*')
         self.passwd.pack(fill="both", expand=True)
         self.passwd.bind('<Return>', self.submit)
+        self.deleteAcc = tk.Label(self, text="Delete account", fg="red", font=("Courier", 8), cursor="hand2")
+        self.deleteAcc.pack()
+        self.deleteAcc.bind("<Button-1>", self.deleteCallback)
         self.submit = tk.Button(self, text='Submit', command=self.submit)
         self.submit.pack(side="bottom", fill="both", expand=True)
-        self.controller.geometry('150x75')
+
+    def chSize(self):
+        self.controller.geometry('170x90')
+
+    def deleteCallback(self, event):
+        log.info("pressed")
+        #TODO Deletion! Only os user can delete
 
     def submit(self, *args):
         global usr
@@ -117,6 +130,9 @@ class Chat(tk.Frame):
         self.thr = Thread(target=self.reader)
         self.thr.daemon = True
         self.text.after(1000,self.thr.start)
+
+    def chSize(self):
+        self.controller.geometry('600x400')
 
     def sender(self, *args):
         tmp = self.msgsv.get()
