@@ -1,2 +1,6 @@
 assets/chat.db
+assets/logs
 *.pyc
+build
+dist
+Chat.spec

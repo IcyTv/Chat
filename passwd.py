@@ -5,7 +5,17 @@ import getpass
 from base64 import b64encode
 import logging as log
 
-log.basicConfig(level=log.DEBUG, format='[%(levelname)s] %(message)s')
+
+#log.basicConfig(level=log.DEBUG, format='[%(levelname)s] %(message)s')
+
+def path_to_temp(relative_path):
+    try:
+        base_path = os.path.dirname(__file__)
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    path = os.path.join(base_path, relative_path)
+    return path
 
 class PasswordError(Exception):
     def __init__(self, message):
@@ -43,7 +53,7 @@ class User(object):
             sqlConnection()
         except:
             pass
-        self.connection = sql.connect('assets/chat.db')
+        self.connection = sql.connect(path_to_temp('./assets/chat.db'))
         self.cursor = self.connection.cursor()
 
     def check(self):
@@ -54,14 +64,10 @@ class User(object):
 
     @staticmethod
     def delete():
-        connection = sql.connect('assets/chat.db')
+        connection = sql.connect(path_to_temp('./assets/chat.db'))
         cursor = connection.cursor()
         cursor.execute("""DELETE FROM users WHERE os_user="{}";""".format(getpass.getuser()))
-        log.debug(cursor.fetchall())
         connection.commit()
-
-
-
 
 class _Pw(User):
     def __init__(self,pw,salt=b64encode(os.urandom(64)).decode('utf-8')):
@@ -95,7 +101,7 @@ class _Pw(User):
                 raise PasswordError('Wrong Password')
 
 def sqlConnection():
-    connection = sql.connect('assets/chat.db')
+    connection = sql.connect(path_to_temp('./assets/chat.db'))
     cursor = connection.cursor()
 
     command = """
